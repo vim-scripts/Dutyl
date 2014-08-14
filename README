@@ -1,0 +1,5 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=5003
+
+GitHub repository: https://github.com/idanarye/vim-dutyl
+
+Dutyl operates various Dlang tools to help you program D in Vim. Instead of having a separate plugin for each tool, Dutyl can use multiple plugins and use them together - for example, use DUB to get a list of import paths the project is using and pass that list to DCD to get autocompleting for symbols that come from libraries. Dutyl has a module(/plugin) system that allows tools to back up each other - so for example if a project doesn&#039t use DUB, Dutyl can back up reading the import paths from a static configuration file.
