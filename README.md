@@ -1,7 +1,7 @@
 INTRODUCTION
 ============
 
-Dutyl operate various Dlang tools to help you program D in Vim. Instead of
+Dutyl operates various Dlang tools to help you program D in Vim. Instead of
 having a separate plugin for each tool, Dutyl can use multiple plugins and
 use them together - for example, use DUB to get a list of import paths the
 project is using and pass that list to DCD to get autocompleting for symbols
@@ -46,4 +46,16 @@ have to supply the path for them using `dutyl#register#tool` like so:
 ```vim
 call dutyl#register#tool('dcd-client','/path/to/DCD/dcd-client')
 call dutyl#register#tool('dcd-server','/path/to/DCD/dcd-server')
+```
+**Note**: If you are using a plugin manager(like Pathogen or Vundle), make sure
+that you only call `dutyl#register#tool` after you run the plugin manager's
+command for updating the runtime path(`pathogen#infect` in case of Pathogen,
+`vundle#end` in case of Vundle, or whatever the command is for whatever the
+tool you are using).
+
+Under Windows, Dutyl uses [VimProc](https://github.com/Shougo/vimproc.vim) when
+available to prevent opening a console windows every time a command needs to be
+ran. To prevent using VimProc, set `g:dutyl_dontUseVimProc` to 1:
+```vim
+let g:dutyl_dontUseVimProc=1
 ```
