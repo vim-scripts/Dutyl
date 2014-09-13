@@ -65,20 +65,41 @@ function! dutyl#displayDDocForSymbolUnderCursor() abort
     endfor
 endfunction
 
-"Exactly what it says on the tin
-function! dutyl#jumpToDeclarationOfSymbolUnderCursor() abort
+"If symbol is a string - jump to the declaration of that string. If symbol is
+"an empty non-string - jump to the symbol under the cursor. If symbol is
+"non-empty non-string - jump to the symbol under the cursor using text
+"search(ignoring it's context).
+"Set splitType to '', 's' or 'v' to determine if and how the window will split
+"before jumping.
+function! dutyl#jumpToDeclarationOfSymbol(symbol,splitType) abort
     try
-        let l:dutyl=dutyl#core#requireFunctions('importPaths','declarationsOfSymbolInBuffer')
+        if type(a:symbol)==type('')
+            let l:dutyl=dutyl#core#requireFunctions('importPaths','declarationsOfSymbol')
+            let l:args=dutyl#core#gatherCommonArguments(l:dutyl)
+            let l:args.symbol=a:symbol
+            let l:declarationLocations=l:dutyl.declarationsOfSymbol(l:args)
+        else
+            if empty(a:symbol)
+                let l:dutyl=dutyl#core#requireFunctions('importPaths','declarationsOfSymbolInBuffer')
+                let l:args=dutyl#core#gatherCommonArguments(l:dutyl)
+                let l:args.symbol=expand('<cword>')
+                let l:declarationLocations=l:dutyl.declarationsOfSymbolInBuffer(l:args)
+            else
+                let l:dutyl=dutyl#core#requireFunctions('importPaths','declarationsOfSymbol')
+                let l:args=dutyl#core#gatherCommonArguments(l:dutyl)
+                let l:args.symbol=expand('<cword>')
+                let l:declarationLocations=l:dutyl.declarationsOfSymbol(l:args)
+            endif
+        endif
     catch
         echoerr 'Unable to find declaration: '.v:exception
         return
     endtry
-    let l:args=dutyl#core#gatherCommonArguments(l:dutyl)
-    let l:args.symbol=expand('<cword>')
-    let l:declarationLocations=l:dutyl.declarationsOfSymbolInBuffer(l:args)
+
     if empty(l:declarationLocations)
         echo 'Unable to find declaration for symbol `'.l:args.symbol.'`'
     elseif 1==len(l:declarationLocations)
+        call dutyl#util#splitWindowBasedOnArgument(a:splitType)
         call dutyl#core#jumpToPosition(l:declarationLocations[0])
     else
         let l:options=['Multiple declarations found:']
@@ -91,38 +112,36 @@ function! dutyl#jumpToDeclarationOfSymbolUnderCursor() abort
         endfor
         let l:selectedLocationIndex=inputlist(l:options)
         if 0<l:selectedLocationIndex && l:selectedLocationIndex<=len(l:declarationLocations)
+            call dutyl#util#splitWindowBasedOnArgument(a:splitType)
             call dutyl#core#jumpToPosition(l:declarationLocations[l:selectedLocationIndex-1])
         endif
     endif
 endfunction
 
-"Exactly what it says on the tin
-function! dutyl#jumpToDeclarationOfSymbol(symbol) abort
-    try
-        let l:dutyl=dutyl#core#requireFunctions('importPaths','declarationsOfSymbol')
-    catch
-        echoerr 'Unable to find declaration: '.v:exception
-        return
-    endtry
+"Runs a syntax check and sets the quickfix or the location list to it's
+"results. Arguments:
+" - files: a list of files to include in the syntax check. Send an empty list
+"   to let the tool decide which files to take
+" - targetList: 'c'/'q' for the quickfix list, 'l' for the location list
+" - jump: nonzero value to automatically jump to the first entry
+function! dutyl#syntaxCheck(files,targetList,jump)
+    let l:dutyl=dutyl#core#requireFunctions('syntaxCheck')
     let l:args=dutyl#core#gatherCommonArguments(l:dutyl)
-    let l:args.symbol=a:symbol
-    let l:declarationLocations=l:dutyl.declarationsOfSymbol(l:args)
-    if empty(l:declarationLocations)
-        echo 'Unable to find declaration for symbol `'.l:args.symbol.'`'
-    elseif 1==len(l:declarationLocations)
-        call dutyl#core#jumpToPosition(l:declarationLocations[0])
-    else
-        let l:options=['Multiple declarations found:']
-        for l:i in range(len(l:declarationLocations))
-            call add(l:options,printf('%i) %s(%s:%s)',
-                        \l:i+1,
-                        \l:declarationLocations[i].file,
-                        \l:declarationLocations[i].line,
-                        \l:declarationLocations[i].column))
-        endfor
-        let l:selectedLocationIndex=inputlist(l:options)
-        if 0<l:selectedLocationIndex && l:selectedLocationIndex<=len(l:declarationLocations)
-            call dutyl#core#jumpToPosition(l:declarationLocations[l:selectedLocationIndex-1])
-        endif
-    endif
+    let l:args.files=a:files
+    let l:checkResult=l:dutyl.syntaxCheck(l:args)
+    call dutyl#util#setQuickfixOrLocationList(l:checkResult,a:targetList,a:jump)
+endfunction
+
+"Runs a style check and sets the quickfix or the location list to it's
+"results. Arguments:
+" - files: a list of files to include in the style check. Send an empty list
+"   to let the tool decide which files to take
+" - targetList: 'c'/'q' for the quickfix list, 'l' for the location list
+" - jump: nonzero value to automatically jump to the first entry
+function! dutyl#styleCheck(files,targetList,jump)
+    let l:dutyl=dutyl#core#requireFunctions('styleCheck')
+    let l:args=dutyl#core#gatherCommonArguments(l:dutyl)
+    let l:args.files=a:files
+    let l:checkResult=l:dutyl.styleCheck(l:args)
+    call dutyl#util#setQuickfixOrLocationList(l:checkResult,a:targetList,a:jump)
 endfunction
