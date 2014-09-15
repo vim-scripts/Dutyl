@@ -100,7 +100,7 @@ function! dutyl#jumpToDeclarationOfSymbol(symbol,splitType) abort
         echo 'Unable to find declaration for symbol `'.l:args.symbol.'`'
     elseif 1==len(l:declarationLocations)
         call dutyl#util#splitWindowBasedOnArgument(a:splitType)
-        call dutyl#core#jumpToPosition(l:declarationLocations[0])
+        call dutyl#core#jumpToPositionPushToTagStack(l:declarationLocations[0])
     else
         let l:options=['Multiple declarations found:']
         for l:i in range(len(l:declarationLocations))
@@ -113,7 +113,7 @@ function! dutyl#jumpToDeclarationOfSymbol(symbol,splitType) abort
         let l:selectedLocationIndex=inputlist(l:options)
         if 0<l:selectedLocationIndex && l:selectedLocationIndex<=len(l:declarationLocations)
             call dutyl#util#splitWindowBasedOnArgument(a:splitType)
-            call dutyl#core#jumpToPosition(l:declarationLocations[l:selectedLocationIndex-1])
+            call dutyl#core#jumpToPositionPushToTagStack(l:declarationLocations[l:selectedLocationIndex-1])
         endif
     endif
 endfunction
@@ -125,7 +125,12 @@ endfunction
 " - targetList: 'c'/'q' for the quickfix list, 'l' for the location list
 " - jump: nonzero value to automatically jump to the first entry
 function! dutyl#syntaxCheck(files,targetList,jump)
-    let l:dutyl=dutyl#core#requireFunctions('syntaxCheck')
+    try
+        let l:dutyl=dutyl#core#requireFunctions('syntaxCheck')
+    catch
+        echoerr 'Unable to check syntax: '.v:exception
+        return
+    endtry
     let l:args=dutyl#core#gatherCommonArguments(l:dutyl)
     let l:args.files=a:files
     let l:checkResult=l:dutyl.syntaxCheck(l:args)
@@ -139,9 +144,35 @@ endfunction
 " - targetList: 'c'/'q' for the quickfix list, 'l' for the location list
 " - jump: nonzero value to automatically jump to the first entry
 function! dutyl#styleCheck(files,targetList,jump)
-    let l:dutyl=dutyl#core#requireFunctions('styleCheck')
+    try
+        let l:dutyl=dutyl#core#requireFunctions('styleCheck')
+    catch
+        echoerr 'Unable to check style: '.v:exception
+        return
+    endtry
     let l:args=dutyl#core#gatherCommonArguments(l:dutyl)
     let l:args.files=a:files
     let l:checkResult=l:dutyl.styleCheck(l:args)
     call dutyl#util#setQuickfixOrLocationList(l:checkResult,a:targetList,a:jump)
+endfunction
+
+
+"Update the CTags file.
+function! dutyl#updateCTags(paths) abort
+    try
+        let l:dutyl=dutyl#core#requireFunctions('generateCTags')
+    catch
+        echoerr 'Unable to update CTags: '.v:exception
+        return
+    endtry
+    let l:args=dutyl#core#gatherCommonArguments(l:dutyl)
+    if !empty(a:paths)
+        let l:args.files=a:paths
+    endif
+    let l:tagList=l:dutyl.generateCTags(l:args)
+    let l:tagsFile='tags'
+    if exists('g:dutyl_tagsFileName')
+        let l:tagsFile=g:dutyl_tagsFileName
+    endif
+    call writefile(l:tagList,l:tagsFile)
 endfunction

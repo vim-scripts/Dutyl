@@ -184,7 +184,7 @@ function! dutyl#core#bytePosition(...) abort
     let l:oldFileFormat=&fileformat
     try
         set fileformat=unix
-        return line2byte(l:line)+l:column
+        return line2byte(l:line)+l:column-1
     finally
         let &fileformat=l:oldFileFormat
     endtry
@@ -250,6 +250,24 @@ function! dutyl#core#jumpToPosition(args) abort
         "We'd rather not use this option - it has some problems with tabs...
         execute 'goto '.a:args.bytePos
     endif
+endfunction
+
+"Like dutyl#core#jumpToPosition, but also pushes to the tag stack
+function! dutyl#core#jumpToPositionPushToTagStack(args) abort
+    "based on http://vim.1045645.n5.nabble.com/Modifying-the-tag-stack-tp1158229p1158240.html
+    let l:tmpTagsFile=tempname()
+    let l:tagName='dutyl_tag_'.localtime()
+    let l:file=fnamemodify(get(a:args,'file',expand('%')),':p')
+    let l:oldTags=&tags
+    try
+        call writefile([l:tagName."\t".l:file."\t0"],l:tmpTagsFile)
+        let &tags=l:tmpTagsFile
+        execute 'tag '.l:tagName
+        call dutyl#core#jumpToPosition(a:args)
+    finally
+        let &tags=l:oldTags
+        call delete(l:tmpTagsFile)
+    endtry
 endfunction
 
 "Gather the arguments commonly used by the various operations. Extract as many
