@@ -106,7 +106,7 @@ function! dutyl#jumpToDeclarationOfSymbol(symbol,splitType) abort
         for l:i in range(len(l:declarationLocations))
             call add(l:options,printf('%i) %s(%s:%s)',
                         \l:i+1,
-                        \l:declarationLocations[i].file,
+                        \get(l:declarationLocations[i],'file','current file'),
                         \l:declarationLocations[i].line,
                         \l:declarationLocations[i].column))
         endfor
@@ -175,4 +175,26 @@ function! dutyl#updateCTags(paths) abort
         let l:tagsFile=g:dutyl_tagsFileName
     endif
     call writefile(l:tagList,l:tagsFile)
+endfunction
+
+"Return the project's root
+function! dutyl#projectRoot() abort
+    try
+        let l:dutyl=dutyl#core#requireFunctions('projectRoot')
+    catch
+        echoerr 'Unable to find project root: '.v:exception
+        return
+    endtry
+    return l:dutyl.projectRoot()
+endfunction
+
+"Runs a command in the project's root
+function! dutyl#runInProjectRoot(command) abort
+    try
+        let l:dutyl=dutyl#core#requireFunctions('projectRoot')
+    catch
+        echoerr 'Unable to find project root: '.v:exception
+        return
+    endtry
+    call dutyl#util#runInDirectory(l:dutyl.projectRoot(),a:command)
 endfunction

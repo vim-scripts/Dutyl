@@ -1,9 +1,13 @@
 command! DUreinit call dutyl#core#instance(1)
 
+command! -nargs=1 -bang DUexecute call dutyl#runInProjectRoot('<bang>'.<q-args>)
+
 command! DUConfigFileEditImportPaths call dutyl#configFile#editImportPaths()
 
 command! DUDCDstartServer call dutyl#dcd#startServer()
 command! DUDCDstopServer call dutyl#dcd#stopServer()
+command! DUDCDclearCache call dutyl#dcd#clearCache()
+command! DUDCDrestartServer call dutyl#dcd#stopServer() | call dutyl#dcd#startServer()
 
 command! DUddoc call dutyl#displayDDocForSymbolUnderCursor()
 command! -bang -nargs=? DUjump call dutyl#jumpToDeclarationOfSymbol(empty(<q-args>) ? <bang>0 : <q-args>,'')
